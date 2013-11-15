@@ -15,12 +15,12 @@ Attribute VB_Exposed = False
 '======================================== License ==================================================+
 '                                                                                                   '
 '   This piece of code is licensed MIT License                                                      '
-'                                                                                                   '
+'   http://opensource.org/licenses/MIT                                                              '
 ' Contributors:                                                                                     '
 '   kbsou - https://github.com/kbsou - xlQuery v0.1                                                 '
 '                                                                                                   '
 '======================================== IMPORTANT ================================================+
-' This class uses refs to: (They will be added automatically)                                       '
+' This class references: (Added automatically)                                                      '
 '       Microsoft ActiveX Data Objects 2.6 or higher                                                '
 '       Microsoft Scripting Runtime                                                                 '
 '===================================================================================================+
@@ -37,7 +37,7 @@ Private isConnected As Boolean
 Dim con As Object
 Dim rs As Object
 
-'Separator to csv files
+'Separator for csv files
 Public Separator As String
 
 Private Sub Class_Initialize()
@@ -53,6 +53,7 @@ Private Sub init()
     Set con = New ADODB.Connection
     Set rs = New ADODB.Recordset
     isConnected = False
+    Separator = "," 'Default separator for csv files
     
 End Sub
 
@@ -62,12 +63,23 @@ Public Sub Connect(path As String, Optional fileType As String = "", Optional pa
   ' path: Path to the file or folder in case of text files
   ' filetype: optional - used in case of text files to specify the type (csv or fixed lenght)
   ' password: optional - used if the database requires a password to connect
+  ' When the files are in csv or fixed lenght format you must pass the directory path instead
+  
+  
+    con.Open CreateConnectionString(path, fileType, password)
+    isConnected = True
+    
+End Sub
+
+Private Function CreateConnectionString(path As String, Optional fileType As String = "", Optional password = "") As String
+'Creates a connection string based on the parameters
+'For more info on connection strings visit www.connectionstrings.com
 
     Dim conStr As String
     
-    'Tries to infer the filetype by the extension
+    fileType = LCase(fileType)
     
-    
+    ' Tries to infer the filetype by the extension
     If path Like "*.xls?" Then
         conStr = "Provider=Microsoft.ACE.OLEDB.12.0;" & _
                  "Data Source='" & path & "';" & _
@@ -81,42 +93,43 @@ Public Sub Connect(path As String, Optional fileType As String = "", Optional pa
                  "HDR=Yes;IMEX=1;"";"
     
     ElseIf path Like "*.mdb" Then
-    
         conStr = "Provider=Microsoft.Jet.OLEDB.4.0;" & _
                  "Data Source='" & path & "';"
-        If password = "" Then: conStr = conStr & "User Id=admin;Password=;"
-        Else: conStr = conStr & "Jet OLEDB:Database Password=" & password & ";"
+        If password = "" Then
+            conStr = conStr & "User Id=admin;Password=;"
+        Else
+            conStr = conStr & "Jet OLEDB:Database Password=" & password & ";"
         End If
     
     ElseIf path Like "*.accdb" Then
-        
         conStr = "Provider=Microsoft.ACE.OLEDB.12.0;" & _
                  "Data Source='" & path & "';"
-        If password = "" Then: conStr = conStr & "User Id=admin;Password=;"
-        Else: conStr = conStr & "Jet OLEDB:Database Password=" & password & ";"
+        If password = "" Then
+            conStr = conStr & "User Id=admin;Password=;"
+        Else
+            conStr = conStr & "Jet OLEDB:Database Password=" & password & ";"
         End If
         
-    'When the files are csv files you must pass the directory path instead of the file path
     ElseIf fileType = "csv" Then
-        If Separator = "" Then Err.Raise 589, "Separator for csv files not configured"
-        
+        If Separator = "" Then Err.Raise 589, "CSV separator not found"
         conStr = "Provider=Microsoft.Jet.OLEDB.4.0;" & _
                 "Data Source=" & replace(path, "\", "\\") & ";" & _
                 "Extended Properties=""text;" & _
                 "HDR=Yes;FMT=Delimited(" & Separator & ");IMEX=1;"";"
+                
     ElseIf fileType = "fixed" Then
         conStr = "Provider=Microsoft.Jet.OLEDB.4.0;" & _
                  "Data Source='" & replace(path, "\", "\\") & "';" & _
                  "Extended Properties=""text;HDR=No;FMT=Fixed"";"
     Else
         Err.Raise vbObjectError + 599, "xlQuery.Connect", _
-              "File type not supported"
+              "File type missing or not supported: " & fileType
     End If
+
+    CreateConnectionString = conStr
     
-    con.Open conStr
-    isConnected = True
-    
-End Sub
+End Function
+
 
 Public Function OpenRecordset(query As String) As Object
 '* Returns a recordset based to a SQL query
@@ -145,6 +158,7 @@ Public Sub CreateCsvSchema(files As Variant, fields As Variant, types As Variant
         Err.Raise vbObjectError + 589, "xlQuery.CreateCsvSchema", _
               "The fields array and the types array must have the same size"
     
+    Separator = delimiter
     Call CreateSchema(files, "Delimited(" & delimiter & ")", fields, types)
     
 End Sub
@@ -212,7 +226,7 @@ Private Sub CreateSchema(files As Variant, fileType As String, fields As Variant
 End Sub
 
 Private Sub require(reference As String, Optional path As String = "", Optional guid As String = "", Optional major As Long = 1, Optional minor As Long = 0)
-'Sets up a reference to a COM object based on the parameters.
+'Sets up a reference based on the parameters.
 
     Dim ref As Object, _
         app As Object
@@ -235,7 +249,7 @@ Private Sub require(reference As String, Optional path As String = "", Optional 
         Case "scripting"
             guid = "{420B2830-E718-11CF-893D-00A0C9054228}": major = 1: minor = 0
         Case "adodb"
-            guid = "{B691E011-1797-432E-907A-4D8C69339129}": major = 6: minor = 0
+            guid = "{B691E011-1797-432E-907A-4D8C69339129}": major = 2: minor = 6
         Case "vbide"
             guid = "{0002E157-0000-0000-C000-000000000046}": major = 5: minor = 3
         Case Else
