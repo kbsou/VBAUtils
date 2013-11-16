@@ -1,9 +1,9 @@
 ####  xlJson
 
-  Used to read and write Json files throgh Excel, eliminating extra steps like converting Json to xml or vice versa
+  Used to read and write Json files through Excel, eliminating extra steps like converting Json to xml or vice versa
 
-Example of usage
-=======
+#### Example of usage
+
 
 ```vb
 
@@ -78,4 +78,19 @@ Private Sub testJsonObject()
     
 End Sub
 
+```
+
+#### Getting content from an Url
+
+You can use xlJson to get content from an Url that returns a Json string. The following example prints some info from GitHub API
+
+```vb
+Sub urltest()
+
+    Dim jObj As New xlJson
+    
+    jObj.DecodeFromUrl "https://api.github.com/users/kbsou/repos"
+    Debug.Print j.§(0).full_name
+    
+End Sub
 ```
