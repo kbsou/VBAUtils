@@ -7,30 +7,14 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
-'************************************** Class xlJson ***********************************************+
-'                                                                                                   '
-'   Version 0.1                                                                                     '
-'   Contains methods and functions for using JSon data objects                                      '
-'                                                                                                   '
-'======================================== License ==================================================+
-'                                                                                                   '
-'   This piece of code is licensed MIT License                                                      '
-'                                                                                                   '
-' Contributors:                                                                                     '
-'   kbsou - https://github.com/kbsou - xlJson v0.1                                                  '
-'                                                                                                   '
-'======================================== IMPORTANT ================================================+
-' This class uses refs to: (They will be added automatically)                                       '
-'       Microsoft Scripting Runtime                                                                 '
-'       Microsoft Script Control                                                                    '
-'===================================================================================================+
-
 Option Explicit
 
-
 Private engine As ScriptControl
-Public JObject As Object
+Public Properties As Object
 
+'Require references to
+' Microsoft Scripting Runtime
+' Microsoft Script Control
 
 Private Sub Class_Initialize()
     
@@ -90,47 +74,39 @@ Private Function quote(word As String)
     quote = "'""' + " & word & " + '""'"
 End Function
 
-Public Sub Decode(jsonString As String)
-    Set JObject = engine.Eval("(" + jsonString + ")")
+Public Sub DecodeFromUrl(url As String)
+'Gets a Json string from an url
+
+    With CreateObject("Microsoft.XMLHTTP")
+        .Open "GET", url, False
+        .send
+        Decode .responseText
+    End With
+    
+End Sub
+
+Public Sub Decode(ByVal jsonString As String)
+    Set Properties = engine.Eval("(" + jsonString + ")")
 End Sub
 
 Public Function Encode() As String
-    Encode = engine.Run("encode", JObject)
+    Encode = engine.Run("encode", Properties)
 End Function
 
 Public Function GetType(Property As String)
     GetType = engine.Run("getType", Property)
 End Function
 
-Property Get Properties(Property As String) As Variant
-
-    If IsObject(CallByName(JObject, Property, VbGet)) Then
-        Set Properties = CallByName(JObject, Property, VbGet)
+Property Get §(Optional Property As String = "") As Variant
+    If "" = Property Then
+        Set § = Properties
     Else
-        Properties = CallByName(JObject, Property, VbGet)
+        If IsObject(CallByName(Properties, Property, VbGet)) Then
+            Set § = CallByName(Properties, Property, VbGet)
+        Else
+            § = CallByName(Properties, Property, VbGet)
+        End If
     End If
-    
-End Property
-
-Property Let Properties(Property As String, val As Variant)
-
-    If IsObject(value) Then
-        CallByName JObject, Property, VbSet, value
-    Else
-        CallByName JObject, Property, VbLet, value
-    End If
-    
-End Property
-
-'§ is a shortcut to properties
-Property Get §(Property As String) As Variant
-
-    If IsObject(CallByName(JObject, Property, VbGet)) Then
-        Set § = CallByName(JObject, Property, VbGet)
-    Else
-        § = CallByName(JObject, Property, VbGet)
-    End If
-    
 End Property
 
 Property Let §(Property As String, value As Variant)
@@ -144,11 +120,11 @@ Property Let §(Property As String, value As Variant)
 End Property
 
 Public Sub RemoveProperty(propertyName As String)
-    Set JObject = engine.Run("removeKey", JObject, propertyName)
+    Set Properties = engine.Run("removeKey", JObject, propertyName)
 End Sub
 
 Public Sub AddProperty(propertyName As String, value As Variant)
-    Set JObject = engine.Run("addKey", JObject, propertyName, value)
+    Set Properties = engine.Run("addKey", Properties, propertyName, value)
 End Sub
 
 Public Function ToArray(Optional arr As Object = Nothing) As Variant()
@@ -157,7 +133,7 @@ Public Function ToArray(Optional arr As Object = Nothing) As Variant()
         size As Integer, _
         resp() As Variant
     
-    If arr Is Nothing Then Set arr = JObject
+    If arr Is Nothing Then Set arr = Properties
     
     size = CallByName(arr, "length", VbGet) - 1
     
@@ -181,7 +157,7 @@ Public Function GetKeys() As String()
     Dim Keys As String, _
         key As Variant
 
-    For Each key In engine.Run("getKeys", JObject)
+    For Each key In engine.Run("getKeys", Properties)
         Keys = Keys & key & ";"
     Next
    
